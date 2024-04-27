@@ -32,6 +32,15 @@ const personSchema=new mongoose.Schema({
     salary:{
         type:Number,
         require:true
+    },
+    // Storing the username and password for authentication
+    username:{
+        require:true,
+        type:String
+    },
+    password:{
+        require:true,
+        type:String
     }
 })
 

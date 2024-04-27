@@ -11,6 +11,52 @@ const Person = require('./models/Person')
 // Importing the menu schema
 const MenuItem = require('./models/Menu_Item')
 const formitem = require('./models/Form');
+
+// Calling the passport for doing the authentication
+const passport = require('passport');
+
+const LocalStrategy = require('passport-local').Strategy;
+// Middleware Function
+const logRequest=(req,res,next)=>{ // Middleware function takes the three parameter req,res and next
+
+    console.log(`${new Date().toLocaleString()} Request Made to :${req.originalUrl}`);
+    next(); // Move on the next phase Meaning of the next is that one middleware work is done now move on to the next middleware
+
+}
+// In the below router we are using the middleware here we are using the middleware on the particular route
+// app.get('/middleware',logRequest,function(req,res){
+//     res.send('Here we will use the middleware')
+// })
+app.use(logRequest)
+
+// Creating the funtion for the authentication
+passport.use(new LocalStrategy(async(USERNAME,password,done)=>{
+    try{
+        // done is the callback function
+      // For authentication we will find the username and password in the database
+
+        console.log('Recieved Credentials:',USERNAME,password);
+        const user = await Person.findOne({username:USERNAME});
+        // If username is incorrect
+        if (!user){
+            return done(null,false,{message:'Incorrect username'});
+        }
+        // Now we will check the password
+        const isPasswordMatch = user.password===password ? true:false;
+        if (isPasswordMatch){
+            return done(null,user);
+        }
+        else{
+            return done(null,false,{message:'Incorrect Password'});
+        }
+    }
+
+    catch{
+        return done(err);
+    }
+}))
+// Here our authentication code is done now in the next step which route we have to authenticate
+
 app.get('/connection',function(req,res){
     res.send("Here we will import the db.js file for establishing the connection with mongodb and Node js")
 })
@@ -57,7 +103,7 @@ app.post('/person',async(req,res)=>{
 })
 
 // Creating the GET method to the get the person data
-app.get('/person',async (req,res)=>{
+app.get('/person',passport.authenticate('local',{session:false}),async (req,res)=>{
     try{
         const data=await Person.find();
         console.log("Data Fetched");
@@ -141,6 +187,7 @@ app.post('/formdata',async(req,res)=>{
     res.status(500).json({error:'Internal Server Error'});
    }
 })
+    // On the formdataget we want to do authentication
    app.get('/formdataget',async(req,res)=>{
         try{
         const formdata = await formitem.find();
@@ -151,6 +198,15 @@ app.post('/formdata',async(req,res)=>{
             res.status(500).json({error:'Internal Server Error'})
         }
     })
+
+
+
+    app.get('/middleware',(req,res)=>{
+        res.send('Here we will use the middleware')
+    })
+
+    // If we want to use the middleware on the all the endpoints
+    console.log(app.use(logRequest));
 
 app.listen(5000,()=>{
     console.log("Server is running on the port 5000");
